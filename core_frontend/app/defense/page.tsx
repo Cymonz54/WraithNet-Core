@@ -1,368 +1,72 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-} from "recharts"
+import { useState, useEffect } from "react"
 import {
   Shield,
-  Activity,
   AlertTriangle,
-  Cpu,
-  Server,
-  CheckCircle,
-  XCircle,
+  HardDrive,
+  Network,
+  Activity,
+  Download,
+  RefreshCw,
+  Plus,
+  Search,
+  Settings,
+  Trash2,
+  Play,
+  Pause,
+  Edit3,
 } from "lucide-react"
 
-// --- Types ---
-interface TrendPoint {
-  time: string
-  value: number
-}
-
+// --- Type Definitions ---
 interface DefenseSummary {
-  activeRules: number
-  threatsDetected: number
-  mitigatedThreats: number
-  failedMitigations: number
+  totalThreats: number
+  blockedAttacks: number
   activeAgents: number
   systemHealth: number
-  trends: {
-    activeRules: TrendPoint[]
-    threatsDetected: TrendPoint[]
-    mitigatedThreats: TrendPoint[]
-    failedMitigations: TrendPoint[]
-    activeAgents: TrendPoint[]
-    systemHealth: TrendPoint[]
-  }
 }
 
 interface DefenseRule {
   id: string
   name: string
-  type: string
-  status: "Enabled" | "Disabled"
+  description: string
+  severity: "low" | "medium" | "high" | "critical"
+  enabled: boolean
+  action: "block" | "alert" | "quarantine"
   lastTriggered: string
 }
 
-interface Threat {
-  time: string
+interface ThreatDetection {
+  id: string
+  timestamp: string
   type: string
-  severity: "Low" | "Medium" | "High" | "Critical"
+  severity: "low" | "medium" | "high" | "critical"
   source: string
-  action: string
+  target: string
+  status: "active" | "blocked" | "investigating"
+  description: string
 }
 
-interface Agent {
+interface AgentStatus {
+  id: string
   name: string
+  status: "online" | "offline" | "warning"
   cpu: number
   memory: number
-  status: "Online" | "Offline"
-  lastHeartbeat: string
+  lastSeen: string
+  threatsBlocked: number
 }
 
-interface MitigationLog {
-  time: string
-  threatType: string
-  action: string
-  outcome: "Success" | "Failure"
+interface SystemLog {
+  id: string
+  timestamp: string
+  level: "info" | "warning" | "error"
+  component: string
+  message: string
 }
 
-// --- Main Page ---
-export default function ProactiveDefensePage() {
-  const [summary, setSummary] = useState<DefenseSummary>({
-    activeRules: 12,
-    threatsDetected: 8,
-    mitigatedThreats: 6,
-    failedMitigations: 2,
-    activeAgents: 5,
-    systemHealth: 87,
-    trends: {
-      activeRules: [
-        { time: "10:00", value: 10 },
-        { time: "11:00", value: 11 },
-        { time: "12:00", value: 12 },
-      ],
-      threatsDetected: [
-        { time: "10:00", value: 4 },
-        { time: "11:00", value: 6 },
-        { time: "12:00", value: 8 },
-      ],
-      mitigatedThreats: [
-        { time: "10:00", value: 2 },
-        { time: "11:00", value: 4 },
-        { time: "12:00", value: 6 },
-      ],
-      failedMitigations: [
-        { time: "10:00", value: 1 },
-        { time: "11:00", value: 1 },
-        { time: "12:00", value: 2 },
-      ],
-      activeAgents: [
-        { time: "10:00", value: 4 },
-        { time: "11:00", value: 5 },
-        { time: "12:00", value: 5 },
-      ],
-      systemHealth: [
-        { time: "10:00", value: 85 },
-        { time: "11:00", value: 86 },
-        { time: "12:00", value: 87 },
-      ],
-    },
-  })
-
-  const [rules, setRules] = useState<DefenseRule[]>([
-    { id: "1", name: "Firewall Block Port 80", type: "Firewall", status: "Enabled", lastTriggered: "2025-10-14 12:12:01" },
-    { id: "2", name: "Malware Scan Daily", type: "Malware Scan", status: "Enabled", lastTriggered: "2025-10-14 06:00:00" },
-    { id: "3", name: "Anomaly Detection", type: "Anomaly Detection", status: "Disabled", lastTriggered: "2025-10-13 18:45:23" },
-  ])
-
-  const [threats, setThreats] = useState<Threat[]>([
-    { time: "12:34:56", type: "CPU Spike", severity: "High", source: "192.168.0.12", action: "Mitigated" },
-    { time: "12:35:01", type: "Memory Warning", severity: "Medium", source: "192.168.0.15", action: "Mitigated" },
-  ])
-
-  const [agents, setAgents] = useState<Agent[]>([
-    { name: "Agent-01", cpu: 34, memory: 62, status: "Online", lastHeartbeat: "12:40:12" },
-    { name: "Agent-02", cpu: 20, memory: 40, status: "Offline", lastHeartbeat: "11:50:00" },
-  ])
-
-  const [logs, setLogs] = useState<MitigationLog[]>([
-    { time: "12:34:56", threatType: "CPU Spike", action: "Throttle Process", outcome: "Success" },
-    { time: "12:35:01", threatType: "Memory Warning", action: "Kill Process", outcome: "Success" },
-  ])
-
-  const [cpuTrend, setCpuTrend] = useState<TrendPoint[]>([
-    { time: "12:30", value: 30 },
-    { time: "12:31", value: 45 },
-    { time: "12:32", value: 40 },
-    { time: "12:33", value: 60 },
-    { time: "12:34", value: 50 },
-  ])
-
-  const [threatTrend, setThreatTrend] = useState<TrendPoint[]>([
-    { time: "10:00", value: 1 },
-    { time: "11:00", value: 3 },
-    { time: "12:00", value: 2 },
-    { time: "13:00", value: 4 },
-  ])
-
-  // --- WebSocket / Live Updates Placeholder ---
-  useEffect(() => {
-    // Connect to backend WebSocket for live updates if needed
-  }, [])
-
-  return (
-    <div className="space-y-6">
-      {/* --- Page Header --- */}
-      <div>
-        <h1 className="text-2xl font-bold text-cyan-400">Proactive Defense</h1>
-        <p className="text-sm text-gray-400">Monitor, manage, and respond to potential threats in real-time</p>
-      </div>
-
-      {/* --- Summary Cards --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-        <SummaryCard label="Active Defense Rules" value={summary.activeRules} icon={<Shield className="w-6 h-6 text-cyan-400" />} sparkData={summary.trends.activeRules} sparkColor="#00ffff" />
-        <SummaryCard label="Threats Detected" value={summary.threatsDetected} icon={<AlertTriangle className="w-6 h-6 text-red-400" />} sparkData={summary.trends.threatsDetected} sparkColor="#ff5555" />
-        <SummaryCard label="Mitigated Threats" value={summary.mitigatedThreats} icon={<CheckCircle className="w-6 h-6 text-green-400" />} sparkData={summary.trends.mitigatedThreats} sparkColor="#00ff00" />
-        <SummaryCard label="Failed Mitigations" value={summary.failedMitigations} icon={<XCircle className="w-6 h-6 text-red-600" />} sparkData={summary.trends.failedMitigations} sparkColor="#ff0000" />
-        <SummaryCard label="Active Agents" value={summary.activeAgents} icon={<Activity className="w-6 h-6 text-cyan-400" />} sparkData={summary.trends.activeAgents} sparkColor="#00ffff" />
-        <SummaryCard label="System Health" value={`${summary.systemHealth}%`} icon={<Server className="w-6 h-6 text-cyan-400" />} sparkData={summary.trends.systemHealth} sparkColor="#00ff99" />
-      </div>
-
-      {/* --- Defense Rules Table --- */}
-      <Section title="Defense Rules Management">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border border-gray-800 rounded-lg">
-            <thead>
-              <tr className="bg-[#111]">
-                <th className="p-3">Rule Name</th>
-                <th className="p-3">Type</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Last Triggered</th>
-                <th className="p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rules.map((rule) => (
-                <tr key={rule.id} className="border-t border-gray-800">
-                  <td className="p-3">{rule.name}</td>
-                  <td className="p-3">{rule.type}</td>
-                  <td className="p-3">
-                    <span className={`px-2 py-1 rounded-full text-xs ${rule.status === "Enabled" ? "bg-green-600 text-white" : "bg-gray-700 text-gray-200"}`}>
-                      {rule.status}
-                    </span>
-                  </td>
-                  <td className="p-3">{rule.lastTriggered}</td>
-                  <td className="p-3 space-x-2">
-                    <button className="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 rounded text-sm">Edit</button>
-                    <button className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm">{rule.status === "Enabled" ? "Disable" : "Enable"}</button>
-                    <button className="px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-sm">Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-
-      {/* --- Threats Overview --- */}
-      <Section title="Threats Overview">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border border-gray-800 rounded-lg">
-              <thead>
-                <tr className="bg-[#111]">
-                  <th className="p-3">Time Detected</th>
-                  <th className="p-3">Threat Type</th>
-                  <th className="p-3">Severity</th>
-                  <th className="p-3">Source</th>
-                  <th className="p-3">Action Taken</th>
-                </tr>
-              </thead>
-              <tbody>
-                {threats.map((t, i) => (
-                  <tr key={i} className="border-t border-gray-800">
-                    <td className="p-3">{t.time}</td>
-                    <td className="p-3">{t.type}</td>
-                    <td className={`p-3 font-semibold ${t.severity === "High" ? "text-red-500" : t.severity === "Critical" ? "text-red-700" : "text-yellow-400"}`}>
-                      {t.severity}
-                    </td>
-                    <td className="p-3">{t.source}</td>
-                    <td className="p-3">{t.action}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Section>
-
-      {/* --- Agents Table --- */}
-      {/* --- Active Agents --- */}
-<Section title="Active Agents">
-  <div className="overflow-x-auto">
-    <table className="w-full text-left border border-gray-800 rounded-lg">
-      <thead>
-        <tr className="bg-[#111]">
-          <th className="p-3">Name</th>
-          <th className="p-3">CPU</th>
-          <th className="p-3">Memory</th>
-          <th className="p-3">Status</th>
-          <th className="p-3">Last Heartbeat</th>
-        </tr>
-      </thead>
-      <tbody>
-        {agents.length > 0 ? (
-          agents.map((a, i) => (
-            <tr key={i} className="border-t border-gray-800">
-              <td className="p-3">{a.name}</td>
-              <td className="p-3">{a.cpu}%</td>
-              <td className="p-3">{a.memory}%</td>
-              <td className="p-3">
-                <span
-                  className={`px-2 py-1 rounded-full text-xs ${
-                    a.status === "Online" ? "bg-green-600 text-white" : "bg-red-600 text-white"
-                  }`}
-                >
-                  {a.status}
-                </span>
-              </td>
-              <td className="p-3">{a.lastHeartbeat}</td>
-            </tr>
-          ))
-        ) : (
-          <tr>
-            <td className="p-3 text-center text-gray-400" colSpan={5}>
-              No agents online
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-</Section>
-
-
-      {/* --- Mitigation Logs --- */}
-      <Section title="Automated Mitigation Logs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border border-gray-800 rounded-lg">
-            <thead>
-              <tr className="bg-[#111]">
-                <th className="p-3">Time</th>
-                <th className="p-3">Threat Type</th>
-                <th className="p-3">Action Taken</th>
-                <th className="p-3">Outcome</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log, i) => (
-                <tr key={i} className="border-t border-gray-800">
-                  <td className="p-3">{log.time}</td>
-                  <td className="p-3">{log.threatType}</td>
-                  <td className="p-3">{log.action}</td>
-                  <td className={`p-3 font-semibold ${log.outcome === "Success" ? "text-green-500" : "text-red-500"}`}>
-                    {log.outcome}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-
-      {/* --- Threat Trends Chart --- */}
-      <Section title="Threats Trend Over Time">
-        <div className="bg-[#121212] border border-gray-800 rounded-lg p-6">
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={threatTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-              <XAxis dataKey="time" stroke="#888" />
-              <YAxis stroke="#888" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#1a1a1a",
-                  border: "1px solid #333",
-                  borderRadius: "8px",
-                }}
-                labelStyle={{ color: "#aaa" }}
-              />
-              <Line type="monotone" dataKey="value" stroke="#ff5555" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </Section>
-      {/* --- Export Buttons --- */}
-<div className="flex space-x-2 mb-4">
-  <button
-    onClick={() => exportToJSON(rules, "defense-rules.json")}
-    className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 rounded text-sm"
-  >
-    Export JSON
-  </button>
-  <button
-    onClick={() => exportToCSV(rules, "defense-rules.csv")}
-    className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 rounded text-sm"
-  >
-    Export CSV
-  </button>
-</div>
-    </div>
-    
-  )
-}
-
-
-// --- Reusable Components ---
-// Export JSON
-function exportToJSON(data: any, filename: string) {
+// --- Export Functions ---
+function exportToJSON(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
@@ -372,13 +76,12 @@ function exportToJSON(data: any, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-// Export CSV
-function exportToCSV(data: any[], filename: string) {
+function exportToCSV(data: Record<string, unknown>[], filename: string) {
   if (!data.length) return
   const headers = Object.keys(data[0])
   const csvRows = [headers.join(",")]
   data.forEach((row) => {
-    const values = headers.map((h) => `"${row[h]}"`)
+    const values = headers.map((h) => `"${String(row[h] ?? '')}"`)
     csvRows.push(values.join(","))
   })
   const blob = new Blob([csvRows.join("\n")], { type: "text/csv" })
@@ -390,45 +93,639 @@ function exportToCSV(data: any[], filename: string) {
   URL.revokeObjectURL(url)
 }
 
+// --- Sub-components ---
 function SummaryCard({
-  label,
+  title,
   value,
   icon,
-  sparkData,
-  sparkColor,
+  trend,
 }: {
-  label: string
-  value: string | number
+  title: string
+  value: string
   icon: React.ReactNode
-  sparkData?: TrendPoint[]
-  sparkColor?: string
+  trend: string
 }) {
   return (
-    <div className="bg-[#121212] border border-gray-800 p-4 rounded-lg flex flex-col justify-between hover:border-cyan-500/50 transition">
-      <div className="flex items-center justify-between">
+    <div className="bg-[#111] border border-gray-800 rounded-lg p-4">
+      <div className="flex justify-between items-start">
         <div>
-          <p className="text-gray-400 text-sm">{label}</p>
-          <p className="text-xl font-semibold text-cyan-300 mt-1">{value}</p>
+          <p className="text-sm text-gray-400">{title}</p>
+          <p className="text-2xl font-bold text-white mt-1">{value}</p>
+          <p className="text-xs text-gray-500 mt-1">{trend}</p>
         </div>
-        <div className="bg-[#0f0f0f] p-3 rounded-full border border-gray-700">{icon}</div>
+        <div className="p-2 bg-gray-800 rounded-lg">{icon}</div>
       </div>
-      {sparkData && sparkData.length > 1 && (
-        <ResponsiveContainer width="100%" height={30} className="mt-2">
-          <LineChart data={sparkData}>
-            <Line type="monotone" dataKey="value" stroke={sparkColor || "#00ffff"} strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
-      )}
     </div>
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function OverviewTab() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-cyan-400 mb-4">Threat Trends</h3>
+          <div className="h-48 flex items-center justify-center text-gray-500">
+            Threat trend visualization chart
+          </div>
+        </div>
+        <div className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-cyan-400 mb-4">System Health</h3>
+          <div className="h-48 flex items-center justify-center text-gray-500">
+            System health monitoring chart
+          </div>
+        </div>
+      </div>
+      <div className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-cyan-400 mb-4">Recent Activity</h3>
+        <div className="text-gray-500 text-center py-8">
+          Recent security events and activities will appear here
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RulesTab({
+  rules,
+  onRuleToggle,
+}: {
+  rules: DefenseRule[]
+  onRuleToggle: (ruleId: string) => void
+}) {
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-cyan-400">{title}</h2>
-      {children}
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-cyan-400">Defense Rules</h3>
+        <button className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded text-white flex items-center gap-2">
+          <Plus className="w-4 h-4" /> Add Rule
+        </button>
+      </div>
+      <div className="space-y-3">
+        {rules.map(rule => (
+          <div
+            key={rule.id}
+            className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-4"
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <h4 className="font-semibold text-white">{rule.name}</h4>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      rule.severity === "critical"
+                        ? "bg-red-500/20 text-red-400"
+                        : rule.severity === "high"
+                        ? "bg-orange-500/20 text-orange-400"
+                        : rule.severity === "medium"
+                        ? "bg-yellow-500/20 text-yellow-400"
+                        : "bg-green-500/20 text-green-400"
+                    }`}
+                  >
+                    {rule.severity.toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-gray-400 text-sm mt-1">{rule.description}</p>
+                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                  <span>Action: {rule.action}</span>
+                  <span>Last triggered: {new Date(rule.lastTriggered).toLocaleDateString()}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onRuleToggle(rule.id)}
+                  className={`p-2 rounded ${
+                    rule.enabled
+                      ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                      : "bg-gray-500/20 text-gray-400 hover:bg-gray-500/30"
+                  }`}
+                >
+                  {rule.enabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </button>
+                <button className="p-2 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30">
+                  <Edit3 className="w-4 h-4" />
+                </button>
+                <button className="p-2 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
+function ThreatsTab({
+  threats,
+  searchTerm,
+  severityFilter,
+  onSearchChange,
+  onSeverityFilterChange,
+  onThreatAction,
+}: {
+  threats: ThreatDetection[]
+  searchTerm: string
+  severityFilter: string
+  onSearchChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+  onSeverityFilterChange: (event: React.ChangeEvent<HTMLSelectElement>) => void
+  onThreatAction: (threatId: string, action: "block" | "investigate" | "dismiss") => void
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-cyan-400">Threat Detection</h3>
+        <div className="flex gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search threats..."
+              value={searchTerm}
+              onChange={onSearchChange}
+              className="pl-10 pr-4 py-2 bg-[#1a1a1a] border border-gray-700 rounded text-white placeholder-gray-400"
+            />
+          </div>
+          <select
+            value={severityFilter}
+            onChange={onSeverityFilterChange}
+            className="px-4 py-2 bg-[#1a1a1a] border border-gray-700 rounded text-white"
+          >
+            <option value="all">All Severity</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+      </div>
+      <div className="space-y-3">
+        {threats.map(threat => (
+          <div
+            key={threat.id}
+            className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-4"
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <h4 className="font-semibold text-white">{threat.type}</h4>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      threat.severity === "critical"
+                        ? "bg-red-500/20 text-red-400"
+                        : threat.severity === "high"
+                        ? "bg-orange-500/20 text-orange-400"
+                        : threat.severity === "medium"
+                        ? "bg-yellow-500/20 text-yellow-400"
+                        : "bg-green-500/20 text-green-400"
+                    }`}
+                  >
+                    {threat.severity.toUpperCase()}
+                  </span>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      threat.status === "blocked"
+                        ? "bg-green-500/20 text-green-400"
+                        : threat.status === "investigating"
+                        ? "bg-yellow-500/20 text-yellow-400"
+                        : "bg-red-500/20 text-red-400"
+                    }`}
+                  >
+                    {threat.status.toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-gray-400 text-sm mt-1">{threat.description}</p>
+                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                  <span>Source: {threat.source}</span>
+                  <span>Target: {threat.target}</span>
+                  <span>Time: {new Date(threat.timestamp).toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {threat.status === "active" && (
+                  <>
+                    <button
+                      onClick={() => onThreatAction(threat.id, "block")}
+                      className="px-3 py-1 bg-red-500 hover:bg-red-400 rounded text-white text-sm"
+                    >
+                      Block
+                    </button>
+                    <button
+                      onClick={() => onThreatAction(threat.id, "investigate")}
+                      className="px-3 py-1 bg-yellow-500 hover:bg-yellow-400 rounded text-white text-sm"
+                    >
+                      Investigate
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => onThreatAction(threat.id, "dismiss")}
+                  className="px-3 py-1 bg-gray-500 hover:bg-gray-400 rounded text-white text-sm"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AgentsTab({ agents }: { agents: AgentStatus[] }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-cyan-400">Agent Status</h3>
+        <button className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded text-white flex items-center gap-2">
+          <Settings className="w-4 h-4" /> Manage Agents
+        </button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {agents.map(agent => (
+          <div
+            key={agent.id}
+            className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-4"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold text-white">{agent.name}</h4>
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      agent.status === "online"
+                        ? "bg-green-500"
+                        : agent.status === "warning"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                    }`}
+                  ></span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">CPU Usage:</span>
+                    <span className="text-white">{agent.cpu}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Memory Usage:</span>
+                    <span className="text-white">{agent.memory}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Threats Blocked:</span>
+                    <span className="text-white">{agent.threatsBlocked}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Last Seen:</span>
+                    <span className="text-white">
+                      {new Date(agent.lastSeen).toLocaleTimeString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button className="p-2 rounded bg-gray-700 hover:bg-gray-600">
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function LogsTab({
+  logs,
+  searchTerm,
+  onSearchChange,
+}: {
+  logs: SystemLog[]
+  searchTerm: string
+  onSearchChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-cyan-400">System Logs</h3>
+        <div className="flex gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search logs..."
+              value={searchTerm}
+              onChange={onSearchChange}
+              className="pl-10 pr-4 py-2 bg-[#1a1a1a] border border-gray-700 rounded text-white placeholder-gray-400"
+            />
+          </div>
+          <button className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded text-white flex items-center gap-2">
+            <Download className="w-4 h-4" /> Export Logs
+          </button>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {logs.map(log => (
+          <div
+            key={log.id}
+            className="flex items-center gap-4 p-3 bg-[#1a1a1a] border border-gray-800 rounded"
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                log.level === "error"
+                  ? "bg-red-500"
+                  : log.level === "warning"
+                  ? "bg-yellow-500"
+                  : "bg-green-500"
+              }`}
+            ></span>
+            <span className="text-xs text-gray-400 w-20">
+              {new Date(log.timestamp).toLocaleTimeString()}
+            </span>
+            <span className="text-sm text-cyan-400 w-32">{log.component}</span>
+            <span className="text-sm text-white flex-1">{log.message}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// --- Main Component ---
+export default function DefensePage() {
+  const [summary, setSummary] = useState<DefenseSummary>({
+    totalThreats: 0,
+    blockedAttacks: 0,
+    activeAgents: 0,
+    systemHealth: 100,
+  })
+
+  const [rules, setRules] = useState<DefenseRule[]>([])
+  const [threats, setThreats] = useState<ThreatDetection[]>([])
+  const [agents, setAgents] = useState<AgentStatus[]>([])
+  const [logs, setLogs] = useState<SystemLog[]>([])
+
+  const [activeTab, setActiveTab] = useState<"overview" | "rules" | "threats" | "agents" | "logs">("overview")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [severityFilter, setSeverityFilter] = useState<"all" | "low" | "medium" | "high" | "critical">("all")
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Load mock data
+  useEffect(() => {
+    loadMockData()
+    const interval = setInterval(updateLiveData, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadMockData = () => {
+    setSummary({
+      totalThreats: 142,
+      blockedAttacks: 138,
+      activeAgents: 8,
+      systemHealth: 94,
+    })
+
+    setRules([
+      {
+        id: "1",
+        name: "SQL Injection Block",
+        description: "Blocks SQL injection attempts in web requests",
+        severity: "high",
+        enabled: true,
+        action: "block",
+        lastTriggered: "2024-01-15T14:30:00Z",
+      },
+      {
+        id: "2",
+        name: "XSS Protection",
+        description: "Detects and prevents cross-site scripting attacks",
+        severity: "high",
+        enabled: true,
+        action: "block",
+        lastTriggered: "2024-01-15T13:45:00Z",
+      },
+    ])
+
+    setThreats([
+      {
+        id: "1",
+        timestamp: "2024-01-15T14:30:00Z",
+        type: "SQL Injection",
+        severity: "high",
+        source: "192.168.1.100",
+        target: "Web Server",
+        status: "blocked",
+        description: "SQL injection attempt detected in login form",
+      },
+    ])
+
+    setAgents([
+      {
+        id: "1",
+        name: "Web Server Agent",
+        status: "online",
+        cpu: 45,
+        memory: 62,
+        lastSeen: "2024-01-15T14:35:00Z",
+        threatsBlocked: 42,
+      },
+    ])
+
+    setLogs([
+      {
+        id: "1",
+        timestamp: "2024-01-15T14:35:00Z",
+        level: "info",
+        component: "Defense Engine",
+        message: "Threat database updated successfully",
+      },
+    ])
+
+    setIsLoading(false)
+  }
+
+  const updateLiveData = () => {
+    setSummary(prev => ({
+      ...prev,
+      totalThreats: prev.totalThreats + Math.floor(Math.random() * 3),
+      blockedAttacks: prev.blockedAttacks + Math.floor(Math.random() * 2),
+    }))
+  }
+
+  const handleRuleToggle = (ruleId: string) => {
+    setRules(prev => prev.map(rule =>
+      rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
+    ))
+  }
+
+  const handleThreatAction = (threatId: string, action: "block" | "investigate" | "dismiss") => {
+    setThreats(prev => prev.map(threat =>
+      threat.id === threatId ? { ...threat, status: action === "block" ? "blocked" : "investigating" } : threat
+    ))
+  }
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value)
+  }
+
+  const handleSeverityFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSeverityFilter(event.target.value as "all" | "low" | "medium" | "high" | "critical")
+  }
+
+  const handleExportJSON = () => {
+    exportToJSON(rules, "defense-rules.json")
+  }
+
+  const handleExportCSV = () => {
+    // Convert DefenseRule to Record<string, unknown> for CSV export
+    const rulesForCSV: Record<string, unknown>[] = rules.map(rule => ({
+      id: rule.id,
+      name: rule.name,
+      description: rule.description,
+      severity: rule.severity,
+      enabled: rule.enabled,
+      action: rule.action,
+      lastTriggered: rule.lastTriggered,
+    }))
+    exportToCSV(rulesForCSV, "defense-rules.csv")
+  }
+
+  const filteredThreats = threats.filter(threat => {
+    const matchesSearch = threat.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         threat.source.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSeverity = severityFilter === "all" || threat.severity === severityFilter
+    return matchesSearch && matchesSeverity
+  })
+
+  const filteredLogs = logs.filter(log =>
+    log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    log.component.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-cyan-500"></div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-cyan-400 flex items-center gap-2">
+            <Shield className="w-6 h-6" /> Proactive Defense
+          </h1>
+          <p className="text-sm text-gray-400">
+            Monitor, detect, and respond to security threats in real-time
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded text-white flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </button>
+          <button 
+            onClick={handleExportJSON}
+            className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded text-white flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" /> Export Report
+          </button>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <SummaryCard
+          title="Total Threats"
+          value={summary.totalThreats.toString()}
+          icon={<AlertTriangle className="w-5 h-5 text-red-400" />}
+          trend="+2 today"
+        />
+        <SummaryCard
+          title="Blocked Attacks"
+          value={summary.blockedAttacks.toString()}
+          icon={<Shield className="w-5 h-5 text-green-400" />}
+          trend="98.5% success rate"
+        />
+        <SummaryCard
+          title="Active Agents"
+          value={summary.activeAgents.toString()}
+          icon={<Activity className="w-5 h-5 text-blue-400" />}
+          trend="All systems operational"
+        />
+        <SummaryCard
+          title="System Health"
+          value={`${summary.systemHealth}%`}
+          icon={<Shield className="w-5 h-5 text-cyan-400" />}
+          trend="Optimal"
+        />
+      </div>
+
+      {/* Export Buttons */}
+      <div className="flex space-x-2">
+        <button
+          onClick={handleExportJSON}
+          className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 rounded text-sm"
+        >
+          Export JSON
+        </button>
+        <button
+          onClick={handleExportCSV}
+          className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 rounded text-sm"
+        >
+          Export CSV
+        </button>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="border-b border-gray-700">
+        <nav className="flex space-x-8">
+          {[
+            { id: "overview", name: "Overview", icon: Activity },
+            { id: "rules", name: "Defense Rules", icon: Shield },
+            { id: "threats", name: "Threat Detection", icon: AlertTriangle },
+            { id: "agents", name: "Agents", icon: Network },
+            { id: "logs", name: "System Logs", icon: HardDrive },
+          ].map(({ id, name, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id as typeof activeTab)}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === id
+                  ? "border-cyan-500 text-cyan-400"
+                  : "border-transparent text-gray-400 hover:text-gray-300"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {name}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      <div className="bg-[#111] border border-gray-800 rounded-lg p-6">
+        {activeTab === "overview" && <OverviewTab />}
+        {activeTab === "rules" && (
+          <RulesTab rules={rules} onRuleToggle={handleRuleToggle} />
+        )}
+        {activeTab === "threats" && (
+          <ThreatsTab
+            threats={filteredThreats}
+            searchTerm={searchTerm}
+            severityFilter={severityFilter}
+            onSearchChange={handleSearchChange}
+            onSeverityFilterChange={handleSeverityFilterChange}
+            onThreatAction={handleThreatAction}
+          />
+        )}
+        {activeTab === "agents" && <AgentsTab agents={agents} />}
+        {activeTab === "logs" && (
+          <LogsTab logs={filteredLogs} searchTerm={searchTerm} onSearchChange={handleSearchChange} />
+        )}
+      </div>
+    </div>
+  )
+}

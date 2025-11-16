@@ -14,56 +14,41 @@ import {
 } from "lucide-react"
 import { useSettings } from "@/context/SettingsContext"
 
-// --- Types ---
-interface SettingsConfig {
-  theme: "dark" | "light" | "auto"
-  refreshInterval: number
-  animationsEnabled: boolean
-  compactMode: boolean
-  defaultDashboard: string
-  emailAlerts: boolean
-  pushNotifications: boolean
-  smsAlerts: boolean
-  severityThreshold: string
-  dailySummary: boolean
-  cpuThreshold: number
-  memoryThreshold: number
-  autoMitigation: boolean
-  logRetention: number
-  autoRestartAgents: boolean
-  apiEndpoint: string
-  wsUrl: string
-  authToken: string
-  siemEnabled: boolean
-  cloudBackup: boolean
-  threatFeed: boolean
-}
+// Import the types from the context to ensure consistency
+import type { SettingsConfig } from "@/context/SettingsContext"
 
 export default function SettingsPage() {
   const { settings: globalSettings, updateSettings } = useSettings()
   const [config, setConfig] = useState<SettingsConfig>(globalSettings)
 
-  // Load config from localStorage on mount
+  // Load saved config from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem("systemSettings")
-    if (saved) setConfig(JSON.parse(saved))
-  }, [])
+    if (saved) {
+      try {
+        const parsedConfig = JSON.parse(saved) as SettingsConfig
+        setConfig(parsedConfig)
+      } catch {
+        // Use default if parsing fails
+        setConfig(globalSettings)
+      }
+    }
+  }, [globalSettings])
 
-  // Save config to localStorage and update global context
+  // Save current config
   const saveConfig = () => {
     localStorage.setItem("systemSettings", JSON.stringify(config))
     updateSettings(config)
     alert("✅ Settings saved successfully!")
   }
 
-  // Discard changes (revert to last saved config)
+  // Discard changes
   const discardChanges = () => {
-    const saved = localStorage.getItem("systemSettings")
-    if (saved) setConfig(JSON.parse(saved))
+    setConfig(globalSettings)
     alert("🔄 Changes discarded.")
   }
 
-  // Backup (Export JSON)
+  // Export config as JSON
   const exportConfig = () => {
     const blob = new Blob([JSON.stringify(config, null, 2)], {
       type: "application/json",
@@ -76,14 +61,14 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Restore (Import JSON)
+  // Import config from JSON file
   const restoreConfig = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
     reader.onload = (event) => {
       try {
-        const restored = JSON.parse(event.target?.result as string)
+        const restored = JSON.parse(event.target?.result as string) as SettingsConfig
         setConfig(restored)
         localStorage.setItem("systemSettings", JSON.stringify(restored))
         updateSettings(restored)
@@ -95,7 +80,7 @@ export default function SettingsPage() {
     reader.readAsText(file)
   }
 
-  // Helper toggle
+  // Toggle boolean keys
   const toggle = (key: keyof SettingsConfig) =>
     setConfig({ ...config, [key]: !config[key] })
 
@@ -121,7 +106,7 @@ export default function SettingsPage() {
             label="Theme"
             value={config.theme}
             options={["dark", "light", "auto"]}
-            onChange={(v) => setConfig({ ...config, theme: v as any })}
+            onChange={(v) => setConfig({ ...config, theme: v as "dark" | "light" | "auto" })}
           />
           <Select
             label="Refresh Interval (seconds)"
@@ -145,7 +130,9 @@ export default function SettingsPage() {
             label="Default Dashboard"
             value={config.defaultDashboard}
             options={["Overview", "Telemetry", "Proactive Defense"]}
-            onChange={(v) => setConfig({ ...config, defaultDashboard: v })}
+            onChange={(v) =>
+              setConfig({ ...config, defaultDashboard: v })
+            }
           />
         </div>
       </Section>
@@ -175,7 +162,9 @@ export default function SettingsPage() {
             label="Severity Threshold"
             value={config.severityThreshold}
             options={["Low", "Medium", "High", "Critical"]}
-            onChange={(v) => setConfig({ ...config, severityThreshold: v })}
+            onChange={(v) =>
+              setConfig({ ...config, severityThreshold: v as "Low" | "Medium" | "High" | "Critical" })
+            }
           />
           <Toggle
             label="Daily Summary Report"
@@ -212,10 +201,10 @@ export default function SettingsPage() {
           />
           <Select
             label="Log Retention (days)"
-            value={String(config.logRetention)}
-            options={["7", "14", "30"]}
+            value={config.logRetention}
+            options={[7, 14, 30]}
             onChange={(v) =>
-              setConfig({ ...config, logRetention: Number(v) })
+              setConfig({ ...config, logRetention: Number(v) as 7 | 14 | 30 })
             }
           />
           <Toggle
@@ -309,8 +298,7 @@ export default function SettingsPage() {
   )
 }
 
-// --- Reusable UI Components ---
-
+// --- Reusable Components ---
 function Section({
   title,
   icon,
@@ -359,8 +347,8 @@ function Select({
   onChange,
 }: {
   label: string
-  value: string
-  options: string[]
+  value: string | number
+  options: (string | number)[]
   onChange: (v: string) => void
 }) {
   return (

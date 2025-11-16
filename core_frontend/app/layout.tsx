@@ -6,9 +6,13 @@ import Link from "next/link"
 import { useState } from "react"
 import { usePathname } from "next/navigation"
 import { Menu, X, LayoutDashboard, Activity, Shield, Settings } from "lucide-react"
-import { SettingsProvider } from "@/context/SettingsContext"  // ✅ import your provider
+import { SettingsProvider } from "@/context/SettingsContext"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-inter',
+})
 
 export default function RootLayout({
   children,
@@ -33,9 +37,8 @@ export default function RootLayout({
   ]
 
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-[#0a0a0a] text-gray-200 min-h-screen`}>
-        {/* ✅ Wrap entire app in SettingsProvider */}
+    <html lang="en" className={inter.variable}>
+      <body className="bg-[#0a0a0a] text-gray-200 min-h-screen font-sans">
         <SettingsProvider>
           {/* Top Navigation Bar */}
           <header className="fixed top-0 left-0 w-full bg-[#111] border-b border-gray-800 z-50">
@@ -55,7 +58,7 @@ export default function RootLayout({
                     key={link.href}
                     href={link.href}
                     className={`hover:text-cyan-300 transition ${
-                      pathname.startsWith(link.href)
+                      pathname?.startsWith(link.href)
                         ? "text-cyan-400 border-b border-cyan-400 pb-1"
                         : "text-gray-300"
                     }`}
@@ -85,7 +88,7 @@ export default function RootLayout({
             >
               {sidebarLinks.map((link) => {
                 const Icon = link.icon
-                const active = pathname.startsWith(link.href)
+                const active = pathname?.startsWith(link.href)
                 return (
                   <Link
                     key={link.href}

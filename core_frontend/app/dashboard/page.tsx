@@ -26,7 +26,7 @@ interface TelemetryData {
 }
 
 export default function DashboardPage() {
-  const { data, loading, error } = useApi<TelemetryData>("/telemetry/")
+  const { data } = useApi<TelemetryData>("/telemetry/")
 
   // Fallback if API is not ready
   const mockData: TelemetryData = {
