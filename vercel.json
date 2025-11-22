@@ -5,25 +5,5 @@
       "src": "core_frontend/package.json",
       "use": "@vercel/next"
     }
-  ],
-  "routes": [
-    {
-      "src": "/",
-      "dest": "/core_frontend"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/core_frontend/$1"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/core_frontend/dashboard"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/core_frontend/:path*"
-    }
   ]
 }
