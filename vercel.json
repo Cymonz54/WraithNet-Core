@@ -1,0 +1,21 @@
+﻿{
+  "version": 2,
+  "builds": [
+    {
+      "src": "core_frontend/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "core_frontend/$1"
+    }
+  ],
+  "version": 2,
+  "buildCommand": "cd core_frontend && npm run build",
+  "outputDirectory": "core_frontend/.next",
+  "installCommand": "cd core_frontend && npm install",
+  "devCommand": "cd core_frontend && npm run dev",
+  "framework": "nextjs"
+}
