@@ -4,3 +4,8 @@ requirements.txt
 *.py
 *.db
 __pycache__/
+app.py
+main.py
+api/
+pyproject.toml
+Pipfile
