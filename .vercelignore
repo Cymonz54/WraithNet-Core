@@ -1,3 +1,6 @@
 ﻿core_dashboard/
 wraithnet.db
 requirements.txt
+*.py
+*.db
+__pycache__/
